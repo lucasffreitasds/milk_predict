@@ -1,58 +1,71 @@
 # Previsão de Produção de Leite — Milk Predict
 
-**Status: em desenvolvimento.**
+**Status: concluído — primeira versão de estudo com dados sintéticos.**
 
-Neste projeto, trabalho na previsão da produção futura de leite por animal, utilizando o histórico produtivo e informações de manejo, saúde e ambiente. A proposta é combinar Ciência de Dados e minha formação em Engenharia Agronômica para apoiar o planejamento de uma fazenda leiteira.
+Desenvolvi este projeto para avaliar como um modelo de previsão de produção de leite pode apoiar a gestão de uma fazenda. A proposta combina Ciência de Dados e minha formação em Engenharia Agronômica para antecipar a produção esperada e explorar sua aplicação ao planejamento de insumos e custos.
 
-O objetivo é responder: **quanto cada animal deve produzir nos próximos dias e como essa previsão pode ajudar na gestão do rebanho?**
+A pergunta principal foi: **como prever a produção de leite para apoiar decisões de gestão com maior segurança?**
 
-[Ver notebook principal](prod_milk_real.ipynb) · [Meu portfólio](https://lucasffreitasds.github.io/portfolio_projetos/)
+[Ver notebook](prod_milk_real.ipynb) · [Meu portfólio](https://lucasffreitasds.github.io/portfolio_projetos/)
 
 ## Dados
 
-Na etapa principal, utilizo uma **base sintética**, construída para representar uma fazenda de manejo intensivo com vacas Holandesas na Zona da Mata de Minas Gerais.
+Utilizei uma base sintética com **16.560 registros, 180 animais e 92 dias consecutivos**, representando uma fazenda de manejo intensivo com vacas Holandesas na Zona da Mata de Minas Gerais.
 
-A base contém **16.560 registros, 180 animais e 92 dias consecutivos**, com informações de todos os animais em cada data. Entre as variáveis estão:
+Os dados incluem produção diária, dias em lactação, ordem de parto, peso, condição corporal, alimentação, comportamento, clima e saúde.
 
-- Produção diária de leite e histórico produtivo.
-- Dias em lactação, ordem de parto e condição corporal.
-- Consumo de matéria seca e água.
-- Frequência de ordenha, ruminação e repouso.
-- Temperatura, umidade e condição de saúde.
-
-Atualmente, a preparação dos dados utiliza `Target_7d`, que representa a produção do mesmo animal **sete dias à frente**. Também criei a média dos sete dias anteriores e o desvio entre a produção atual e essa média.
-
-Por ser uma base sintética, os resultados servem para estudo e desenvolvimento da abordagem. A aplicação em uma fazenda depende de validação com dados reais.
+Criei a variável resposta `Target_7d`, correspondente à produção do mesmo animal sete dias depois. Também calculei a média dos sete dias anteriores e o desvio da produção atual em relação a essa média.
 
 ## Desenvolvimento
 
 Organizei o trabalho nas seguintes etapas:
 
-1. Ordenação dos registros por animal e data.
-2. Criação da variável resposta futura e das variáveis de histórico produtivo.
-3. Separação cronológica em treino, validação e teste, com intervalos entre os conjuntos para reduzir o risco de vazamento da resposta futura.
-4. Análise exploratória das relações entre produção, manejo, saúde e ambiente.
-5. Remoção de variáveis constantes ou redundantes.
-6. Codificação de variáveis categóricas, representação cíclica das datas e padronização dos atributos numéricos.
-7. Exploração da seleção de variáveis com **Random Forest Regressor, SelectFromModel e Boruta**.
-8. Experimentos com **regressão Ridge**, ajuste de hiperparâmetros e avaliação dos erros de previsão.
+1. Inspeção dos dados e ordenação por animal e data.
+2. Criação da resposta futura e dos atributos de histórico produtivo.
+3. Separação cronológica em treino, validação e teste, com intervalos de sete dias entre os conjuntos.
+4. Análise exploratória e avaliação de hipóteses no conjunto de treino.
+5. Remoção de atributos constantes ou redundantes, codificação e padronização.
+6. Exploração da seleção de variáveis com Random Forest, SelectFromModel e Boruta.
+7. Treinamento da regressão Ridge, avaliação na validação e treinamento final com treino e validação reunidos.
+8. Avaliação da versão final no teste e aplicação das previsões à simulação de consumo e custo.
 
-O repositório também contém uma análise inicial em `prod_milk.ipynb`, realizada com outra base de produção leiteira.
+A divisão inicial ficou com **9.000 registros de treino, 1.260 de validação e 1.260 de teste**. O treinamento final utilizou **10.260 registros**.
 
-## Resultados preliminares
+O modelo final utiliza **15 atributos**, com `alpha=0.1`. Random Forest e Boruta foram utilizados na exploração da seleção de variáveis; a previsão final foi realizada com Ridge. A avaliação apresentada utiliza holdout temporal.
 
-Os resultados salvos da regressão Ridge correspondem a um **experimento anterior de previsão para 15 dias**, com **2.700 registros de teste**. A preparação atual foi alterada para sete dias, e ainda preciso atualizar as células de modelagem e executar novamente o fluxo completo.
+## Resultados
 
-| Métrica | Resultado registrado |
+| Métrica | Ridge final |
 | --- | ---: |
-| R² | 0,9179 |
+| R² | 0,9176 |
 | MAE | 1,25 L |
-| RMSE | 1,73 L |
-| MAPE | 4,61% |
+| RMSE | 1,74 L |
 
-Nesse experimento, o erro absoluto médio foi de aproximadamente **1,25 litro por previsão**. O RMSE de **1,73 litro** complementa a avaliação, dando maior peso aos erros mais elevados.
+O modelo apresentou um **erro absoluto médio de 1,25 L por previsão**. Cada previsão corresponde à produção diária de um animal, sete dias à frente. O teste contém **1.260 previsões**, distribuídas entre 180 animais e sete dias.
 
-Esses números são uma referência inicial. Ainda preciso verificar o desempenho após consolidar o horizonte de previsão e revisar a validação temporal.
+Na semana avaliada, o modelo estimou **36.198,02 L**, contra **36.262,54 L** observados na base: uma diferença de **−0,18%**.
+
+A diferença no total semanal complementa as métricas individuais, mas não as substitui: erros de superestimação e subestimação podem se compensar na soma.
+
+## Aplicação ao negócio
+
+Ao final de uma semana, somo as previsões geradas a partir dos sete dias mais recentes para estimar a produção da semana seguinte.
+
+No teste, utilizei dados de **19 a 25 de março de 2024** para prever a produção de **26 de março a 1º de abril**. Todas as informações utilizadas estavam disponíveis no fechamento da semana de origem.
+
+Explorei uma simulação de consumo de matéria seca e custo de alimentação, combinando produção prevista e peso histórico como aproximação para a semana seguinte.
+
+Com as premissas adotadas, a estimativa foi de **85.957,14 kg de equivalente de silagem e R$ 17.191,43**, uma diferença de **−0,14%** em relação à referência calculada com peso e produção observados.
+
+A simulação estima consumo e custo para apoiar o planejamento. A economia obtida com o uso da ferramenta, seu retorno financeiro e a adequação da dieta não foram avaliados neste estudo.
+
+## Evolução do projeto
+
+Esta primeira versão avalia a previsão com sete dias de antecedência. O objetivo é ampliar gradualmente o horizonte, chegando a **180 dias**, com um novo dataset, histórico mais longo e retreinamento do modelo.
+
+Pretendo avaliar o desempenho em diferentes horizontes e quantificar a incerteza das previsões, buscando uma ferramenta que apoie o planejamento de curto, médio e longo prazo.
+
+A confiança para uso na gestão dependerá de validação com dados reais e da confirmação de que os erros são aceitáveis para as decisões que a ferramenta pretende apoiar.
 
 ## Ferramentas utilizadas
 
@@ -60,29 +73,27 @@ Python, Pandas, NumPy, SciPy, Matplotlib, Seaborn, Scikit-learn, Boruta, OpenPyX
 
 ## Como executar
 
-Utilizei **Python 3.13**. Com Python e Git instalados, clone o repositório:
+Clone o repositório:
 
 ```bash
 git clone https://github.com/lucasffreitasds/milk_predict.git
 cd milk_predict
 ```
 
-Se usar Pyenv, ajuste `.python-version` para uma versão ou ambiente instalado na sua máquina. O arquivo atual referencia meu ambiente local, `milk_env`.
-
-Crie e ative um ambiente virtual:
-
-**Linux / macOS:**
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
+Crie e ative um ambiente virtual.
 
 **Windows — Prompt de Comando:**
 
 ```bat
 py -3.13 -m venv .venv
 .venv\Scripts\activate.bat
+```
+
+**Linux / macOS — com Python 3.13 instalado:**
+
+```bash
+python3.13 -m venv .venv
+source .venv/bin/activate
 ```
 
 Instale as dependências e abra o JupyterLab:
@@ -93,25 +104,23 @@ python -m pip install boruta jupyterlab
 python -m jupyterlab
 ```
 
-Abra `prod_milk_real.ipynb` com o diretório de trabalho na raiz do repositório. O carregamento utiliza:
+Abra `prod_milk_real.ipynb` e execute as células em ordem, com o diretório de trabalho na raiz do repositório. O dataset está em `dataset/dataset_leite_realista.xlsx`.
 
-```python
-df = pd.read_excel("dataset/dataset_leite_realista.xlsx")
-```
+Se utilizar Pyenv, ajuste `.python-version` para uma versão ou ambiente disponível na sua máquina.
 
-As células finais de modelagem ainda precisam dos ajustes descritos abaixo para permitir uma execução completa a partir de um kernel reiniciado.
+## Observações e próximos passos
 
-## Limitações e próximos passos
+- **Dados sintéticos e histórico curto:** validar a abordagem com dados reais e períodos mais longos antes de utilizá-la em uma fazenda.
 
-O projeto está em desenvolvimento. Os principais pontos que ainda preciso revisar são:
+- **Horizonte de previsão:** ampliar gradualmente de sete para 180 dias, avaliando o desempenho e a incerteza em cada horizonte.
 
-- **Integrar a preparação em uma Pipeline:** ajustar a padronização e a seleção de variáveis somente nos dados de treino de cada divisão da validação cruzada.
+- **Generalização:** o teste cobre sete datas de origem dos mesmos animais presentes no treino. Ainda preciso avaliar outros períodos, novos animais e outras fazendas.
 
-- **Comparar com previsões simples:** usar a produção atual e a média histórica como referências para avaliar quanto o modelo melhora a previsão.
+- **Comparação de modelos:** ampliar os experimentos e incorporar previsões simples, como a produção atual e a média histórica, à avaliação documentada.
 
-- **Ampliar a avaliação:** testar outros modelos, analisar os erros por animal e estágio de lactação e validar a abordagem com históricos mais longos e dados reais.
+- **Preparação dos dados:** organizar as transformações, a seleção de atributos e o modelo em uma Pipeline para facilitar a reprodução e a geração de novas previsões.
 
-- **Facilitar a reprodução:** completar as dependências e suas versões no `requirements.txt` e atualizar os resultados após uma nova execução completa.
+- **Aplicação alimentar:** fundamentar a equação de consumo, avaliar a aproximação dos pesos futuros e considerar separadamente silagem e concentrado na composição da dieta.
 
 ## Autor
 
@@ -119,4 +128,4 @@ O projeto está em desenvolvimento. Os principais pontos que ainda preciso revis
 
 [GitHub](https://github.com/lucasffreitasds) · [Portfólio](https://lucasffreitasds.github.io/portfolio_projetos/)
 
-**Base utilizada:** [dataset sintético de produção leiteira](dataset/dataset_leite_realista.xlsx), com descrição das variáveis e do cenário na aba `Guia`.
+**Base utilizada:** [dataset sintético de produção leiteira](dataset/dataset_leite_realista.xlsx), com descrição do cenário e das variáveis na aba `Guia`.
